@@ -1,57 +1,5 @@
-import socketpool
-import wifi
-import usb_hid
-from adafruit_httpserver import Server, Request, Response, GET, POST
-from adafruit_hid.keyboard import Keyboard
-from adafruit_hid.keycode import Keycode
-from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS
-
-kbd = Keyboard(usb_hid.devices)
-layout = KeyboardLayoutUS(kbd)
-
-
-wifi.radio.start_ap(ssid="picow-keyboard", password="picow-keyboard")
-pool = socketpool.SocketPool(wifi.radio)
-server = Server(pool, debug=True)
-
-key_translate = {
-    "enter": Keycode.ENTER,
-    "escape": Keycode.ESCAPE,
-    "backspace": Keycode.BACKSPACE,
-    "delete": Keycode.DELETE,
-    "l_shift": Keycode.LEFT_SHIFT,
-    "l_control": Keycode.LEFT_CONTROL,
-    "l_alt": Keycode.LEFT_ALT,
-    "l_shift": Keycode.RIGHT_SHIFT,
-    "l_control": Keycode.RIGHT_CONTROL,
-    "l_alt": Keycode.RIGHT_ALT,
-    "f1": Keycode.F1,
-    "f2": Keycode.F2,
-    "f3": Keycode.F3,
-    "f4": Keycode.F4,
-    "f5": Keycode.F5,
-    "f6": Keycode.F6,
-    "f7": Keycode.F7,
-    "f8": Keycode.F8,
-    "f9": Keycode.F9,
-    "f10": Keycode.F10,
-    "f11": Keycode.F11,
-    "f12": Keycode.F12,
-    "windows": Keycode.WINDOWS,
-    "tab": Keycode.TAB,
-    "down_arrow": Keycode.DOWN_ARROW,
-    "up_arrow": Keycode.UP_ARROW,
-    "left_arrow": Keycode.LEFT_ARROW,
-    "right_arrow": Keycode.RIGHT_ARROW,
-    "quote": Keycode.QUOTE,
-    "mac_command": Keycode.COMMAND,
-    "forward_slash": Keycode.FORWARD_SLASH,
-    "grave_accent": Keycode.GRAVE_ACCENT,
-    "backslash": Keycode.BACKSLASH,
-}
-
-FORM_HTML_TEMPLATE = """
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -153,10 +101,24 @@ FORM_HTML_TEMPLATE = """
             transition: border-color .15s ease, box-shadow .15s ease;
         }
 
-        .input:focus,
-        select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 25%, transparent);
+        select {
+            background-color: var(--card);
+            color: var(--text);
+            color-scheme: light;
+        }
+
+        select option {
+            color: #111;
+            background: #fff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+
+            select option:hover,
+            select option:checked {
+                background: #e5e7eb;
+                color: #111;
+            }
         }
 
         .checkbox {
@@ -336,57 +298,5 @@ FORM_HTML_TEMPLATE = """
         </div>
     </div>
 </body>
+
 </html>
-"""
-
-@server.route("/", [GET, POST])
-def form(request: Request):
-    """
-    Serve a form with the given enctype, and display back the submitted value.
-    """
-    enctype = "text/plain"
-
-    if request.method == POST:
-        text_sent = request.form_data["data"]
-        key1 = request.form_data["special_1"]
-        key2 = request.form_data["special_2"]
-        shortcut_char = request.form_data["shortcut_char"]
-        enter = "press_enter" in request.form_data
-
-        print(request.form_data)
-        if key1 == "none" and key2 == "none":
-            data = request.form_data.get("data")
-
-            print("Decoded:")
-            print(data)
-
-            if enter:
-                data += "\n"
-
-            layout.write(data)
-
-        else:
-            # Shortcut mode
-            keycodes = []
-
-            if key1 != "none":
-                keycodes.append(key_translate[key1])
-
-            if key2 != "none":
-                keycodes.append(key_translate[key2])
-
-            if len(shortcut_char) > 0:
-                keycodes.extend(layout.keycodes(shortcut_char))
-
-
-            print(f"Sending {keycodes}")
-            kbd.send(*keycodes)
-
-    return Response(
-        request,
-        FORM_HTML_TEMPLATE,
-        content_type="text/html",
-    )
-
-
-server.serve_forever("0.0.0.0", 80)
