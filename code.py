@@ -1,5 +1,6 @@
 import socketpool
 import wifi
+import ipaddress
 import usb_hid
 from adafruit_httpserver import Server, Request, Response, GET, POST
 from adafruit_hid.keyboard import Keyboard
@@ -11,6 +12,8 @@ layout = KeyboardLayoutUS(kbd)
 
 
 wifi.radio.start_ap(ssid="picow-keyboard", password="picow-keyboard")
+wifi.radio.set_ipv4_address_ap(ipv4=ipaddress.IPv4Address("192.168.1.1"), netmask=ipaddress.IPv4Address("255.255.255.0"), gateway=ipaddress.IPv4Address("192.168.1.1"))
+wifi.radio.start_dhcp_ap()
 pool = socketpool.SocketPool(wifi.radio)
 server = Server(pool, debug=True)
 
